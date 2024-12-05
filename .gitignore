@@ -1,0 +1,12 @@
+# Ignoring Visual Studio folders
+.vs/
+.vscode/
+
+# Ignoring build results
+[Bb]in/
+[Oo]bj/
+
+
+# Miscellaneous files
+*.log
+*.suo

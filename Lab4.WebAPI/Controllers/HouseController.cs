@@ -58,9 +58,7 @@ namespace Lab4.WebAPI.Controllers
                 .FirstOrDefault(house => house.Id == id);
 
             if (house == null)
-            {
                 return NotFound();
-            }
 
             var houseDto = new HouseDto
             {
@@ -91,9 +89,7 @@ namespace Lab4.WebAPI.Controllers
         public IActionResult CreateHouse([FromBody] HouseDto houseDto)
         {
             if (houseDto == null)
-            {
                 return BadRequest("House data is null.");
-            }
 
             var house = new House
             {
@@ -140,9 +136,7 @@ namespace Lab4.WebAPI.Controllers
                 .FirstOrDefault(house => house.Id == id);
 
             if (existingHouse == null)
-            {
                 return NotFound($"House with ID {id} not found.");
-            }
 
             existingHouse.Owner = houseDto.Owner;
             existingHouse.YearBuilt = houseDto.YearBuilt;
@@ -205,14 +199,64 @@ namespace Lab4.WebAPI.Controllers
         public IActionResult DeleteHouse(int id)
         {
             var house = _db.Houses.FirstOrDefault(house => house.Id == id);
+
             if (house == null)
-            {
                 return NotFound();
-            }
 
             _db.Houses.Remove(house);
             _db.SaveChanges();
             return NoContent();
         }
+
+        [HttpGet("Search")]
+        public ActionResult<IEnumerable<HouseDto>> GetHousesList(int? yearBuilt, string? owner, double? area, int? floors)
+        {
+            var query = _db.Houses
+                .Include(house => house.Addresses)
+                .Include(house => house.Garages)
+                .AsQueryable();
+
+            if (yearBuilt.HasValue)
+                query = query.Where(house => house.YearBuilt == yearBuilt.Value);
+
+            if (!string.IsNullOrEmpty(owner))
+                query = query.Where(house => house.Owner.Contains(owner));
+
+            if (area.HasValue)
+                query = query.Where(house => house.Area >= area.Value - 5.0 && house.Area <= area.Value + 5.0);
+
+            if (floors.HasValue)
+                query = query.Where(house => house.Floors == floors.Value);
+
+            var houses = query
+                .Select(house => new HouseDto
+                {
+                    Id = house.Id,
+                    YearBuilt = house.YearBuilt,
+                    Owner = house.Owner,
+                    Area = house.Area,
+                    Floors = house.Floors,
+                    Addresses = house.Addresses.Select(address => new AddressDto
+                    {
+                        Street = address.Street,
+                        City = address.City,
+                        PostalCode = address.PostalCode,
+                        Country = address.Country,
+                        Notes = address.Notes
+                    }).ToList(),
+                    Garages = house.Garages.Select(garage => new GarageDto
+                    {
+                        Type = garage.Type,
+                        Size = garage.Size
+                    }).ToList()
+                })
+                .ToList();
+
+            if (!houses.Any())
+                return NotFound("No houses found.");
+
+            return Ok(houses);
+        }
+
     }
 }

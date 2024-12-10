@@ -25,10 +25,10 @@ namespace Lab4.WebAPI.Controllers
         public ActionResult<Garage> GetGarageById(int id)
         {
             var garage = _db.Garages.FirstOrDefault(garage => garage.Id == id);
+
             if (garage == null)
-            {
                 return NotFound();
-            }
+
             return Ok(garage);
         }
 
@@ -36,10 +36,10 @@ namespace Lab4.WebAPI.Controllers
         public ActionResult<IEnumerable<Garage>> GetGaragesByHouseId(int houseId)
         {
             var garages = _db.Garages.Where(garage => garage.HouseId == houseId).ToList();
+
             if (garages == null || !garages.Any())
-            {
                 return NotFound();
-            }
+
             return Ok(garages);
         }
 
@@ -47,9 +47,7 @@ namespace Lab4.WebAPI.Controllers
         public IActionResult CreateGarage([FromBody] Garage garage)
         {
             if (garage == null)
-            {
                 return BadRequest("Garage data is null");
-            }
 
             _db.Garages.Add(garage);
             _db.SaveChanges();
@@ -61,15 +59,11 @@ namespace Lab4.WebAPI.Controllers
         public IActionResult UpdateGarage(int id, [FromBody] Garage updatedGarage)
         {
             if (updatedGarage == null)
-            {
                 return BadRequest("Garage data is null");
-            }
 
             var existingGarage = _db.Garages.FirstOrDefault(garage => garage.Id == id);
             if (existingGarage == null)
-            {
                 return NotFound();
-            }
 
             existingGarage.Type = updatedGarage.Type;
             existingGarage.Size = updatedGarage.Size;
@@ -85,14 +79,33 @@ namespace Lab4.WebAPI.Controllers
         {
             var garage = _db.Garages.FirstOrDefault(garage => garage.Id == id);
             if (garage == null)
-            {
                 return NotFound();
-            }
 
             _db.Garages.Remove(garage);
             _db.SaveChanges();
 
             return NoContent();
         }
+
+        [HttpGet("Search")]
+        public ActionResult<IEnumerable<Garage>> SearchGarages(string? type, double? size)
+        {
+            var query = _db.Garages.AsQueryable();
+
+            if (!string.IsNullOrEmpty(type))
+                query = query.Where(garage => garage.Type.Contains(type));
+    
+
+            if (size.HasValue)
+                query = query.Where(garage => garage.Size >= (size.Value - 5) && garage.Size <= (size.Value + 5));
+
+            var garages = query.ToList();
+
+            if (!garages.Any())
+                return NotFound("No garages found.");
+
+            return Ok(garages);
+        }
+
     }
 }
